@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Vachak is a voice-first reading program: it listens to a child read aloud, corrects decoding mistakes in the moment, and gives parents, teachers, and community volunteers a ten-minute daily reading routine.">
+<title>Vachak — Every child can learn to read, when someone is listening</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============ 1. TOKENS (declared before all styling) ============ */
+:root{
+  /* color — brand rationale: warm paper + ink read as a book, not a screen;
+     teal is the only action color and doubles as the "correction" highlight */
+  --paper:#FAF6EF;        /* page canvas */
+  --surface:#FFFFFF;      /* cards, panels */
+  --ink:#23272F;          /* primary text */
+  --ink-2:#565D66;        /* secondary text (AA on paper & white) */
+  --teal:#0E6B5C;         /* primary action + correction highlight */
+  --teal-deep:#0A4F44;    /* hover/pressed state */
+  --teal-wash:#E8F1ED;    /* quiet tinted panels */
+  --marigold:#F2A93B;     /* static accent tick only — never body text */
+  --line:rgba(35,39,47,.14);  /* hairline */
+
+  /* type scale — Fraunces display over Work Sans body, 1.25 ratio base */
+  --f-display:"Fraunces",Georgia,serif;
+  --f-body:"Work Sans",sans-serif;
+  --fs-display:clamp(2.75rem,6.5vw,4.5rem);   /* hero h1 */
+  --fs-h2:clamp(2rem,3.6vw,2.875rem);         /* section heads */
+  --fs-h3:1.375rem;                            /* sub heads */
+  --fs-body:1.0625rem;                         /* body */
+  --fs-lead:1.25rem;                           /* hero sub, pull quotes */
+  --fs-sm:.9375rem;                            /* captions */
+  --fs-eyebrow:.8125rem;                       /* overlines */
+  --lh-tight:1.08; --lh-body:1.65; --lh-lead:1.5;
+
+  /* spacing — strict 8px grid */
+  --sp-2:8px;  --sp-3:12px; --sp-4:16px; --sp-5:24px;
+  --sp-6:32px; --sp-7:40px; --sp-8:48px; --sp-9:64px;
+
+  /* radii — deliberately varied by role */
+  --r-input:10px;   /* fields */
+  --r-card:18px;    /* panels */
+  --r-screen:24px;  /* the app frame */
+  --r-pill:999px;   /* buttons & chips */
+
+  /* shadow — used once, for the app frame + evidence panel only */
+  --shadow-1:0 1px 2px rgba(35,39,47,.06), 0 20px 44px -20px rgba(35,39,47,.22);
+}
+/* ============ 2. BASE ============ */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--f-body);font-size:var(--fs-body);line-height:var(--lh-body);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+svg{display:block;max-width:100%}
+h1,h2,h3,p,ul{margin:0}
+ul{padding:0;list-style:none}
+a{color:var(--teal-deep);text-decoration-thickness:1px;text-underline-offset:3px}
+a:hover{color:var(--teal)}
+:focus-visible{outline:2px solid var(--teal-deep);outline-offset:2px;border-radius:2px}
+.container{max-width:1160px;margin-inline:auto;padding-inline:clamp(24px,5vw,40px)}
+section{padding-block:clamp(64px,10vw,112px)}
+.section-eyebrow{
+  display:flex;align-items:center;gap:var(--sp-3);
+  font-size:var(--fs-eyebrow);font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--teal-deep);
+}
+.section-eyebrow::before{content:"";width:24px;height:4px;background:var(--marigold);flex:none}
+h2{font-family:var(--f-display);font-weight:520;font-size:var(--fs-h2);line-height:var(--lh-tight);letter-spacing:-.01em}
+h3{font-family:var(--f-display);font-weight:520;font-size:var(--fs-h3);line-height:1.22}
+p+h3,h3+p{margin-top:var(--sp-5)}
+/* buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-2);
+  padding:14px 26px;border-radius:var(--r-pill);border:1px solid transparent;
+  font-family:var(--f-body);font-size:1rem;font-weight:600;line-height:1.2;
+  cursor:pointer;text-decoration:none;transition:background-color .15s ease,transform .15s ease,border-color .15s ease;
+}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--teal);color:#fff}
+.btn-primary:hover{background:var(--teal-deep);color:#fff}
+.btn-primary:active{background:var(--teal-deep)}
+.btn-ghost{border-color:var(--line);color:var(--ink);background:transparent}
+.btn-ghost:hover{border-color:var(--ink);color:var(--ink)}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{transition:none!important;animation:none!important}
+}
+/* ============ 3. NAV ============ */
+.site-header{border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-6);padding-block:var(--sp-4)}
+.brand{display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.brand:hover{color:var(--ink)}
+.brand-name{font-family:var(--f-display);font-weight:600;font-size:1.375rem;letter-spacing:.01em}
+.nav-links{display:flex;align-items:center;gap:var(--sp-6);font-size:.9375rem;font-weight:500}
+.nav-links a{color:var(--ink);text-decoration:none}
+.nav-links a:hover{color:var(--teal-deep);text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:6px}
+.nav-links .btn{margin-left:var(--sp-2)}
+@media (max-width:767px){
+  .nav{flex-wrap:wrap;padding-block:var(--sp-3)}
+  .nav-links{order:3;width:100%;justify-content:space-between;gap:var(--sp-3);padding-top:var(--sp-3);border-top:1px solid var(--line);overflow-x:auto}
+  .nav-links .btn{margin-left:0}
+}
+/* ============ 4. HERO ============ */
+.hero{padding-block:clamp(56px,9vw,104px) clamp(48px,8vw,88px)}
+.hero-grid{display:grid;gap:var(--sp-8)}
+.hero h1{font-family:var(--f-display);font-weight:500;font-size:var(--fs-display);line-height:var(--lh-tight);letter-spacing:-.015em;max-width:14ch}
+.hero h1 em{font-style:italic;font-weight:400}
+.hero-sub{margin-top:var(--sp-5);font-size:var(--fs-lead);line-height:var(--lh-lead);color:var(--ink-2);max-width:56ch}
+.hero-actions{display:flex;flex-wrap:wrap;gap:var(--sp-4);margin-top:var(--sp-6)}
+.hero-trust{margin-top:var(--sp-5);font-size:var(--fs-sm);color:var(--ink-2)}
+.hero-trust strong{color:var(--ink);font-weight:600}
+.screen{position:relative;background:var(--surface);border-radius:var(--r-screen);border:1px solid var(--line);box-shadow:var(--shadow-1);padding:var(--sp-6)}
+.screen-top{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-4)}
+.screen-tag{display:inline-flex;align-items:center;gap:var(--sp-2);font-size:.8125rem;font-weight:600;color:var(--teal-deep);background:var(--teal-wash);border-radius:var(--r-pill);padding:6px 14px}
+.screen-level{font-size:.8125rem;font-weight:600;color:var(--ink-2);letter-spacing:.02em}
+.screen-book{margin-top:var(--sp-5);font-family:var(--f-display);font-size:1.5rem;line-height:1.6}
+.screen-book .hl{background:rgba(242,169,59,.45);padding-inline:2px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.screen-wave{margin-top:var(--sp-5);width:100%;height:56px}
+.screen-feedback{margin-top:var(--sp-5);border:1px solid var(--line);border-radius:var(--r-card);padding:var(--sp-4);background:var(--paper)}
+.screen-feedback b{display:block;font-size:.8125rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2);margin-bottom:var(--sp-2);font-weight:600}
+.screen-feedback p{font-size:var(--fs-sm)}
+.screen-feedback .prompt{color:var(--teal-deep);font-weight:600;white-space:nowrap}
+@media (min-width:900px){
+  .hero-grid{grid-template-columns:minmax(0,7fr) minmax(0,5fr);align-items:center;gap:var(--sp-9)}
+  .screen{margin-top:var(--sp-6)}
+}
+/* ============ 5. PROBLEM ============ */
+.problem{background:var(--surface);border-block:1px solid var(--line)}
+.problem-grid{display:grid;gap:var(--sp-8)}
+.problem-stat{
+  font-family:var(--f-display);font-weight:460;font-size:clamp(1.9rem,4vw,3.1rem);
+  line-height:1.22;letter-spacing:-.01em;max-width:24ch;
+}
+.problem-stat .n{font-style:italic;color:var(--teal-deep)}
+.problem-src{margin-top:var(--sp-5);font-size:var(--fs-sm);color:var(--ink-2)}
+.problem-col{display:grid;gap:var(--sp-6);align-content:center}
+.problem-col h3{font-size:1.125rem;font-family:var(--f-body);font-weight:600;line-height:1.4}
+.problem-col p{color:var(--ink-2);font-size:var(--fs-body);margin-top:var(--sp-2)}
+.problem-col li{position:relative;padding-left:var(--sp-5);color:var(--ink-2)}
+.problem-col li::before{content:"";position:absolute;left:var(--sp-2);top:.7em;width:6px;height:6px;border-radius:1px;background:var(--teal);transform:rotate(45deg)}
+.problem-col li+li{margin-top:var(--sp-3)}
+@media (min-width:900px){
+  .problem-grid{grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:var(--sp-9)}
+  .problem-col{gap:var(--sp-6)}
+}
+/* ============ 6. SOLUTION (numbered steps) ============ */
+.steps{display:grid;gap:0}
+.step{
+  display:grid;gap:var(--sp-4);
+  padding-block:var(--sp-7);
+  border-top:1px solid var(--line);
+}
+.step:last-child{border-bottom:1px solid var(--line)}
+.step-num{font-family:var(--f-display);font-style:italic;font-weight:460;font-size:2.5rem;color:var(--teal);line-height:1}
+.step h3{font-size:1.5rem}
+.step p{color:var(--ink-2);max-width:62ch;margin-top:var(--sp-2)}
+.step-demo{
+  align-self:center;justify-self:start;
+  border:1px solid var(--line);background:var(--surface);
+  border-radius:var(--r-card);padding:var(--sp-4) var(--sp-5);
+  font-size:var(--fs-sm);color:var(--ink);
+}
+.step-demo .say{display:block;font-family:var(--f-display);font-size:1.25rem;line-height:1.45}
+.step-demo .say .mis{color:var(--teal-deep);text-decoration:underline;text-decoration-style:wavy;text-decoration-color:var(--marigold);text-underline-offset:4px}
+.step-demo .fix{display:block;margin-top:var(--sp-3);color:var(--ink-2);font-weight:500}
+.step-demo .fix b{color:var(--teal-deep);font-weight:600}
+.step-who{margin-top:var(--sp-6);border-left:3px solid var(--teal);padding-left:var(--sp-5);max-width:58ch}
+.step-who p{color:var(--ink);margin-top:0}
+.step-who b{color:var(--teal-deep)}
+.steps-close{margin-top:var(--sp-7)}
+@media (min-width:900px){
+  .step{grid-template-columns:96px minmax(0,1fr) minmax(0,300px);column-gap:var(--sp-6);align-items:start}
+  .step-demo{margin-top:var(--sp-2)}
+}
+/* ============ 7. EVIDENCE / PROOF ============ */
+.evidence-grid{display:grid;gap:var(--sp-8)}
+.evidence-left h2{max-width:16ch}
+.evidence-mechs{display:grid;gap:var(--sp-6);margin-top:var(--sp-7)}
+.mech{display:grid;grid-template-columns:auto 1fr;gap:var(--sp-5)}
+.mech-index{font-family:var(--f-display);font-style:italic;color:var(--teal-deep);font-size:1.25rem;line-height:1.4}
+.evidence-panel{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);
+  padding:var(--sp-6);box-shadow:var(--shadow-1);align-self:start;
+}
+.evidence-panel .kicker{font-size:.8125rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2)}
+.evidence-panel .kicker span{display:inline-block;background:var(--marigold);color:var(--ink);border-radius:var(--r-pill);padding:2px 10px;margin-left:var(--sp-2);font-size:.75rem;letter-spacing:.02em}
+.panel-title{margin-top:var(--sp-3);font-family:var(--f-display);font-size:1.5rem;line-height:1.2}
+.panel-meta{margin-top:var(--sp-3);font-size:var(--fs-sm);color:var(--ink-2)}
+.panel-rows{border-top:1px solid var(--line);margin-top:var(--sp-5)}
+.panel-row{display:flex;justify-content:space-between;gap:var(--sp-5);padding-block:var(--sp-4);border-bottom:1px solid var(--line);font-size:var(--fs-sm)}
+.panel-row .lbl{color:var(--ink);font-weight:600}
+.panel-row .val{color:var(--ink-2);text-align:right}
+.panel-note{margin-top:var(--sp-4);font-size:.8125rem;color:var(--ink-2)}
+.evidence-srcs{margin-top:var(--sp-7);font-size:var(--fs-sm);color:var(--ink-2)}
+.evidence-srcs li{margin-top:var(--sp-2)}
+@media (min-width:900px){
+  .evidence-grid{grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:var(--sp-9)}
+  .evidence-panel{margin-top:var(--sp-4)}
+}
+/* ============ 8. QUESTIONS (objection handling) ============ */
+.qa-grid{display:grid;gap:var(--sp-8)}
+.qa-intro h2{max-width:16ch}
+.qa-intro p{margin-top:var(--sp-4);color:var(--ink-2);max-width:46ch}
+.qa-list{border-top:1px solid var(--line)}
+.qa-item{border-bottom:1px solid var(--line)}
+.qa-item summary{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--sp-5);
+  cursor:pointer;list-style:none;padding-block:var(--sp-5);
+  font-family:var(--f-display);font-size:1.25rem;font-weight:520;line-height:1.35;
+}
+.qa-item summary::-webkit-details-marker{display:none}
+.qa-item summary::after{
+  content:"";flex:none;width:14px;height:14px;position:relative;
+  border-right:2px solid var(--teal);border-bottom:2px solid var(--teal);
+  transform:rotate(45deg) translateY(-3px);
+  transition:transform .15s ease;
+}
+.qa-item[open] summary::after{transform:rotate(225deg) translateY(-1px)}
+.qa-item[open] summary{color:var(--teal-deep)}
+.qa-body{padding-bottom:var(--sp-6);max-width:64ch;color:var(--ink-2)}
+.qa-body p+p{margin-top:var(--sp-3)}
+@media (min-width:900px){
+  .qa-grid{grid-template-columns:minmax(0,4fr) minmax(0,7fr);gap:var(--sp-9)}
+}
+/* ============ 9. CTA + FORM ============ */
+.cta{background:var(--teal);color:#fff}
+.cta-band{display:grid;gap:var(--sp-7);padding-block:clamp(56px,8vw,88px)}
+.cta h2{max-width:18ch}
+.cta .section-eyebrow{color:var(--teal-wash)}
+.cta-sub{color:var(--teal-wash);max-width:52ch;font-size:var(--fs-lead);line-height:var(--lh-lead);margin-top:var(--sp-4)}
+.form-card{background:#fff;border-radius:var(--r-screen);padding:clamp(var(--sp-6),5vw,var(--sp-8));align-self:center}
+.form-card h3{color:var(--ink)}
+.form-card .fc-sub{color:var(--ink-2);font-size:var(--fs-sm);margin-top:var(--sp-3)}
+.waitlist{margin-top:var(--sp-6);display:grid;gap:var(--sp-4)}
+.field{display:grid;gap:var(--sp-2)}
+.field label{font-size:.875rem;font-weight:600;color:var(--ink)}
+.field input,.field select{
+  font-family:var(--f-body);font-size:1rem;color:var(--ink);
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--r-input);
+  padding:13px 16px;width:100%;appearance:none;
+}
+.field input:focus,.field select:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:var(--teal)}
+.field select{background-image:linear-gradient(45deg,transparent 50%,var(--teal-deep) 50%),linear-gradient(135deg,var(--teal-deep) 50%,transparent 50%);background-position:calc(100% - 20px) 55%,calc(100% - 14px) 55%;background-size:6px 6px;background-repeat:no-repeat;padding-right:44px}
+.field .err{color:#B3261E;font-size:.8125rem;display:none}
+.field.invalid input{border-color:#B3261E}
+.field.invalid .err{display:block}
+.waitlist .btn{width:100%}
+.form-status{border-radius:var(--r-card);padding:var(--sp-4) var(--sp-5);font-size:var(--fs-sm);display:none}
+.form-status.ok{display:block;background:var(--teal-wash);color:var(--teal-deep);font-weight:500}
+@media (min-width:900px){
+  .cta-band{grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:var(--sp-9);align-items:center}
+}
+/* ============ 10. FOOTER ============ */
+.site-footer{background:var(--surface);border-top:1px solid var(--line)}
+.footer-grid{display:grid;gap:var(--sp-8);padding-block:var(--sp-8)}
+.footer-brand p{margin-top:var(--sp-3);color:var(--ink-2);font-size:var(--fs-sm);max-width:34ch}
+.footer-cols{display:grid;gap:var(--sp-8);grid-template-columns:repeat(2,minmax(0,1fr))}
+.footer-cols h4{font-size:.8125rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-2);font-weight:600}
+.footer-cols li{margin-top:var(--sp-3)}
+.footer-cols a{color:var(--ink);text-decoration:none;font-size:var(--fs-sm)}
+.footer-cols a:hover{color:var(--teal-deep);text-decoration:underline;text-underline-offset:3px}
+.footer-base{border-top:1px solid var(--line);padding-block:var(--sp-5);display:flex;flex-wrap:wrap;gap:var(--sp-4);justify-content:space-between;color:var(--ink-2);font-size:.8125rem}
+@media (min-width:900px){
+  .footer-grid{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+  .footer-cols{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container nav">
+    <a class="brand" href="#top" aria-label="Vachak home">
+      <svg width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+        <path d="M17 8c-2.6-1.8-6.2-2.4-9-1.9v18.4c2.8-.5 6.4.1 9 1.9 2.6-1.8 6.2-2.4 9-1.9V6.1c-2.8-.5-6.4.1-9 1.9Z" fill="#0E6B5C"/>
+        <path d="M17 8v18.4" stroke="#FAF6EF" stroke-width="1.4"/>
+        <path d="M3 25.5h4M3 29h7M3 22h2.6" stroke="#F2A93B" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M31 25.5h-4M31 29h-7M31 22h-2.6" stroke="#F2A93B" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      <span class="brand-name">Vachak</span>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#problem">The problem</a>
+      <a href="#how">How it works</a>
+      <a href="#evidence">Evidence</a>
+      <a href="#questions">Questions</a>
+      <a class="btn btn-primary" href="#waitlist">Join the waitlist</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="container hero-grid">
+      <div>
+        <p class="section-eyebrow">A voice-first reading program</p>
+        <h1 id="hero-title">Every child can learn to read — <em>when someone is listening.</em></h1>
+        <p class="hero-sub">Vachak is an app that listens to a child read aloud in their own language, corrects each mistake in the moment, and turns any adult — parent, teacher, or community volunteer — into a ten-minute daily reading coach. It runs on the phone your family already owns.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#waitlist">Join the pilot waitlist</a>
+          <a class="btn btn-ghost" href="#how">See how it works</a>
+        </div>
+        <p class="hero-trust"><strong>Pilot:</strong> 2,000 children · one district · a 12-week randomized trial · results published openly</p>
+      </div>
+
+      <div class="screen" aria-label="A sample Vachak reading session">
+        <div class="screen-top">
+          <span class="screen-tag">Reading aloud</span>
+          <span class="screen-level">Level 2 · Hindi</span>
+        </div>
+        <p class="screen-book">“The <span class="hl">cat</span> sat on the mat. The cat saw a <span class="hl">rat</span> run past the door.”</p>
+        <svg class="screen-wave" viewBox="0 0 480 56" aria-hidden="true">
+          <path d="M6 24v8M18 18v20M30 12v32M42 20v16M54 25v6M66 8v40M78 21v14M90 14v28M102 26v4M114 10v36M126 22v12M138 16v24M150 24v8M162 19v18M174 13v30M186 23v10M198 17v22M210 25v6M222 11v34M234 20v16M246 15v26M258 24v8M270 18v20M282 12v32M294 22v12M306 16v24M318 26v4M330 13v30M342 21v14M354 17v22M366 24v8M378 19v18M390 14v28M402 23v10M414 16v24M426 20v16M438 25v6M450 12v32M462 22v12M474 18v20" fill="none" stroke="#0E6B5C" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <div class="screen-feedback">
+          <b>Vachak just said</b>
+          <p>“You paused on <em>rat</em>. Break it: <span class="prompt">r–a–t</span>. Now read the line again — the whole line this time.”</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="problem" id="problem" aria-labelledby="problem-title">
+    <div class="container problem-grid">
+      <div>
+        <p class="section-eyebrow">The problem</p>
+        <h2 id="problem-title" class="problem-stat"><span class="n">7 in 10</span> ten-year-olds in low- and middle-income countries cannot read and understand a simple sentence.</h2>
+        <p class="problem-src">World Bank “learning poverty” estimate, 2022 · updated for post-pandemic learning loss.</p>
+      </div>
+      <ul class="problem-col">
+        <li>
+          <h3>No one can hear them read.</h3>
+          <p>Classes of 40 to 60 mean a teacher cannot give each child even one minute of individual reading time a day — and reading only improves when someone hears the errors.</p>
+        </li>
+        <li>
+          <h3>The gap closes fast.</h3>
+          <p>A child who does not decode by the end of grade 3 rarely catches up; almost every later subject depends on reading first.</p>
+        </li>
+        <li>
+          <h3>The cost is lifelong.</h3>
+          <p>Each year of effective schooling raises a child's lifetime earnings by roughly 9% (Psacharopoulos &amp; Patrinos). For the current generation, the losses are measured in trillions of dollars.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="how" aria-labelledby="how-title">
+    <div class="container">
+      <p class="section-eyebrow">How it works</p>
+      <h2 id="how-title">Three things a reading session needs — <em>now automated.</em></h2>
+      <div class="steps">
+        <article class="step">
+          <span class="step-num" aria-hidden="true">01</span>
+          <div>
+            <h3>It listens</h3>
+            <p>A child reads a short story aloud. Vachak hears exactly where they stumble — the syllable, the word, the long pause — because decoding happens out loud, and out loud is the only place to catch it.</p>
+            <div class="step-demo">
+              <span class="say">“The <span class="mis">cat</span> sat on the mat.”</span>
+              <span class="fix">Heard: “<b>ca… ket</b>” — word <b>cat</b>, sound /k/ missing</span>
+            </div>
+          </div>
+          <p class="step-who"><b>Who it serves:</b> the child whose teacher has 45 others to hear.</p>
+        </article>
+        <article class="step">
+          <span class="step-num" aria-hidden="true">02</span>
+          <div>
+            <h3>It corrects — in the moment</h3>
+            <p>Not “try again.” A model sound, a syllable break, then a re-read of the full line. Correction that lands within two seconds is what builds the decoding pathway; correction that arrives the next day is just a grade.</p>
+            <div class="step-demo">
+              <span class="fix"><b>Vachak:</b> “Break it: <b>c–a–t</b>. Now the whole line again.”</span>
+            </div>
+          </div>
+          <p class="step-who"><b>Who it serves:</b> the parent who wants to help but was never taught phonics herself.</p>
+        </article>
+        <article class="step">
+          <span class="step-num" aria-hidden="true">03</span>
+          <div>
+            <h3>It levels — to the child, not the class</h3>
+            <p>Every session starts from measured fluency and adjusts. Too-hard text frustrates; too-easy text bores; the growth happens at the edge. Vachak keeps each reader on their own edge, ten minutes a day.</p>
+            <div class="step-demo">
+              <span class="fix"><b>Next session:</b> 14 words in a row read cold — Level 2 → Level 3</span>
+            </div>
+          </div>
+          <p class="step-who"><b>Who it serves:</b> the volunteer who can run a reading circle but cannot plan 30 individual lessons.</p>
+        </article>
+      </div>
+      <p class="step-who steps-close">
+        <b>The adult is never replaced.</b> Parents, teachers, and community workers still run the circle, set the routine, and give the encouragement. Vachak does the part only a 1:1 listener could do before — at a cost of about one to two dollars per child per year.
+      </p>
+    </div>
+  </section>
+
+  <section id="evidence" aria-labelledby="evidence-title">
+    <div class="container evidence-grid">
+      <div class="evidence-left">
+        <p class="section-eyebrow">The evidence</p>
+        <h2 id="evidence-title">We automate mechanisms that already have proof — not hopes.</h2>
+        <div class="evidence-mechs">
+          <div class="mech">
+            <span class="mech-index" aria-hidden="true">A</span>
+            <p><strong>Oral reading with immediate feedback</strong> is among the most reliable interventions in the reading literature — repeated, listened-to reading builds fluency with meta-analytic effect sizes in the d≈0.4–0.7 range (approximate; Therrien 2004 review).</p>
+          </div>
+          <div class="mech">
+            <span class="mech-index" aria-hidden="true">B</span>
+            <p><strong>Teaching at the right level</strong> — Pratham's human-delivered model — regularly moves literacy by 0.3–0.6 SD, but needs trained cadres. Leveling is exactly the part software can automate faithfully.</p>
+          </div>
+          <div class="mech">
+            <span class="mech-index" aria-hidden="true">C</span>
+            <p><strong>Mother-tongue instruction</strong> is the strongest system-level lever in early reading. Vachak is built language-first, not English-first.</p>
+          </div>
+        </div>
+        <ul class="evidence-srcs">
+          <li>Sources: World Bank / UNESCO Institute for Statistics, “Learning Poverty” (2022) · Therrien, “Fluency and comprehension gains as a result of repeated reading” (2004) · J-PAL / Pratham, Teaching at the Right Level evaluations.</li>
+        </ul>
+      </div>
+
+      <aside class="evidence-panel" aria-label="Pilot trial protocol">
+        <p class="kicker">Trial protocol <span>not results</span></p>
+        <h3 class="panel-title">We measure like we mean it.</h3>
+        <p class="panel-meta">One district · Hindi · 2,000 children · 12 weeks · 10 minutes a day. Clustered randomization by school or village; EGRA-aligned oral reading fluency at baseline and endline.</p>
+        <div class="panel-rows">
+          <div class="panel-row"><span class="lbl">Primary bar</span><span class="val">≥ 0.2 SD fluency gain vs. control</span></div>
+          <div class="panel-row"><span class="lbl">Engagement bar</span><span class="val">≥ 60% median weekly sessions</span></div>
+          <div class="panel-row"><span class="lbl">Cost target</span><span class="val">US$1–2 / child / year</span></div>
+          <div class="panel-row"><span class="lbl">Contract model</span><span class="val">Pay for measured outcomes</span></div>
+        </div>
+        <p class="panel-note">Vachak is pre-launch. If either bar is missed in the pilot, we publish the miss — the go/no-go threshold is public by design.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section id="questions" aria-labelledby="questions-title">
+    <div class="container qa-grid">
+      <div class="qa-intro">
+        <p class="section-eyebrow">Fair questions</p>
+        <h2 id="questions-title">The doubts we hear most — answered straight.</h2>
+        <p>If your question is not here, ask us. We would rather lose a signup to an honest answer than win one with a vague promise.</p>
+      </div>
+      <div class="qa-list">
+        <details class="qa-item">
+          <summary>Does this replace teachers?</summary>
+          <div class="qa-body">
+            <p>No — it works <em>through</em> them. The teacher still sets the routine, runs the group, and carries the relationship. Vachak takes over the parts a human cannot do at class size: hearing 45 children read one at a time and tracking each one's level. In the pilot design, sessions are run by existing teachers, parents, and community workers with a short script.</p>
+          </div>
+        </details>
+        <details class="qa-item">
+          <summary>What if the family has no smartphone or no data?</summary>
+          <div class="qa-body">
+            <p>The deployment unit is the phone a family or a village facilitator already owns — no school hardware to buy. The app runs on the cheapest Android devices and works offline between syncs: stories and the voice model download once, sessions run on-device, and progress syncs when data is available. One shared phone can serve a whole reading circle.</p>
+          </div>
+        </details>
+        <details class="qa-item">
+          <summary>Another literacy app — why would this one work?</summary>
+          <div class="qa-body">
+            <p>Most prior apps never listened: they showed text and waited for a tap. The ingredient with the strongest evidence — reading aloud to someone who corrects you immediately — was the one ingredient software could not deliver until speech recognition got cheap and accurate enough for children's voices in low-resource languages. That changed in the last two years. Vachak is built around the listening, not around the screen.</p>
+          </div>
+        </details>
+        <details class="qa-item">
+          <summary>How do you protect children's privacy?</summary>
+          <div class="qa-body">
+            <p>Audio is processed to recognize the reading and then deleted on a short retention policy; no biometric profiles, no advertising, no data resale. Parental consent is required before a child's first session, and every pilot partner signs a data-handling agreement. The full privacy notice ships with the pilot materials.</p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta" id="waitlist" aria-labelledby="cta-title">
+    <div class="container cta-band">
+      <div>
+        <p class="section-eyebrow">Join the pilot</p>
+        <h2 id="cta-title">Bring a listening tutor to your classroom, village, or state.</h2>
+        <p class="cta-sub">Pilot districts open in waves. Leave your details and we will write to you — once — when your region opens, with the full protocol attached.</p>
+      </div>
+      <div class="form-card">
+        <h3>Join the waitlist</h3>
+        <p class="fc-sub">No spam, no drip campaigns. One email when your region opens.</p>
+        <form class="waitlist" id="waitlist-form" novalidate>
+          <div class="field" id="field-email">
+            <label for="email">Email address</label>
+            <input type="email" id="email" name="email" autocomplete="email" required placeholder="you@example.org" aria-describedby="err-email">
+            <p class="err" id="err-email">Enter a valid email address.</p>
+          </div>
+          <div class="field" id="field-role">
+            <label for="role">I am a…</label>
+            <select id="role" name="role">
+              <option value="">Choose one (optional)</option>
+              <option value="parent">Parent or guardian</option>
+              <option value="teacher">Teacher or headteacher</option>
+              <option value="volunteer">Community volunteer / NGO</option>
+              <option value="government">Government official</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary">Join the waitlist</button>
+        </form>
+        <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="#top" aria-label="Vachak home">
+          <svg width="28" height="28" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+            <path d="M17 8c-2.6-1.8-6.2-2.4-9-1.9v18.4c2.8-.5 6.4.1 9 1.9 2.6-1.8 6.2-2.4 9-1.9V6.1c-2.8-.5-6.4.1-9 1.9Z" fill="#0E6B5C"/>
+            <path d="M17 8v18.4" stroke="#FAF6EF" stroke-width="1.4"/>
+          </svg>
+          <span class="brand-name">Vachak</span>
+        </a>
+        <p>A pilot program for foundational reading. Trial results are published openly — including the misses.</p>
+      </div>
+      <div class="footer-cols">
+        <div>
+          <h4>Program</h4>
+          <ul>
+            <li><a href="#how">How it works</a></li>
+            <li><a href="#evidence">Evidence</a></li>
+            <li><a href="#waitlist">Pilot waitlist</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>For partners</h4>
+          <ul>
+            <li><a href="#evidence">Government &amp; NGO brief</a></li>
+            <li><a href="#questions">Data &amp; privacy</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Contact</h4>
+          <ul>
+            <li><a href="mailto:hello@vachak.org">hello@vachak.org</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer-base">
+      <span>© 2026 Vachak. A pilot program — not yet a proven one.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var form = document.getElementById("waitlist-form");
+  var emailInput = document.getElementById("email");
+  var emailGroup = document.getElementById("field-email");
+  var statusBox = document.getElementById("form-status");
+
+  function isValidEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  }
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    statusBox.className = "form-status";
+    statusBox.textContent = "";
+
+    var email = emailInput.value.trim();
+    if (!isValidEmail(email)) {
+      emailGroup.classList.add("invalid");
+      emailInput.setAttribute("aria-invalid", "true");
+      emailInput.focus();
+      return;
+    }
+    emailGroup.classList.remove("invalid");
+    emailInput.setAttribute("aria-invalid", "false");
+
+    // ---- Real backend goes here ----
+    // Replace the block below with a fetch to your waitlist API, e.g.:
+    //   fetch("/api/waitlist", {
+    //     method: "POST",
+    //     headers: { "Content-Type": "application/json" },
+    //     body: JSON.stringify({
+    //       email: email,
+    //       role: document.getElementById("role").value
+    //     })
+    //   }).then(handle response; on failure, show an inline error here)
+    // For a static deploy with no backend, post to a form service
+    // (e.g. a Google Form via fetch, or Formspree) instead.
+    // -------------------------------
+
+    statusBox.className = "form-status ok";
+    statusBox.textContent = "You are on the list. We will write once — when your region opens.";
+    form.reset();
+  });
+
+  emailInput.addEventListener("input", function () {
+    if (emailGroup.classList.contains("invalid") &&
+        isValidEmail(emailInput.value.trim())) {
+      emailGroup.classList.remove("invalid");
+      emailInput.setAttribute("aria-invalid", "false");
+    }
+  });
+})();
+</script>
+</body>
+</html>
